@@ -29,16 +29,22 @@ export const DualTensorSensoryView: React.FC<DualTensorSensoryViewProps> = ({
     'target'
   );
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [imgHasError, setImgHasError] = useState(false);
   const tensorCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    if (activeSensoryMode === 'target') return;
+    setImgHasError(false);
+  }, [referenceUrl]);
+
+  useEffect(() => {
+    if (activeSensoryMode === 'target' && !imgHasError) return;
     const canvas = tensorCanvasRef.current;
-    if (!canvas || !targetRgba || !workingRgba) return;
+    if (!canvas || !targetRgba) return;
 
     const fw = analysisDimensions.w;
     const fh = analysisDimensions.h;
-    if (targetRgba.length !== fw * fh * 4 || workingRgba.length !== fw * fh * 4) return;
+    if (targetRgba.length !== fw * fh * 4) return;
+    if (activeSensoryMode !== 'target' && (!workingRgba || workingRgba.length !== fw * fh * 4)) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -46,19 +52,26 @@ export const DualTensorSensoryView: React.FC<DualTensorSensoryViewProps> = ({
     const imgData = ctx.createImageData(fw, fh);
     const out = imgData.data;
 
-    if (activeSensoryMode === 'canvas') {
+    if (activeSensoryMode === 'target') {
       for (let i = 0; i < out.length; i += 4) {
-        out[i] = workingRgba[i];
-        out[i + 1] = workingRgba[i + 1];
-        out[i + 2] = workingRgba[i + 2];
+        out[i] = targetRgba[i];
+        out[i + 1] = targetRgba[i + 1];
+        out[i + 2] = targetRgba[i + 2];
+        out[i + 3] = 255;
+      }
+    } else if (activeSensoryMode === 'canvas') {
+      for (let i = 0; i < out.length; i += 4) {
+        out[i] = workingRgba![i];
+        out[i + 1] = workingRgba![i + 1];
+        out[i + 2] = workingRgba![i + 2];
         out[i + 3] = 255;
       }
     } else {
       // True Dual-Tensor Residual ΔI = |I_target(x,y) - I_canvas(x,y)|
       for (let i = 0; i < out.length; i += 4) {
-        const dr = Math.abs(targetRgba[i] - workingRgba[i]);
-        const dg = Math.abs(targetRgba[i + 1] - workingRgba[i + 1]);
-        const db = Math.abs(targetRgba[i + 2] - workingRgba[i + 2]);
+        const dr = Math.abs(targetRgba[i] - workingRgba![i]);
+        const dg = Math.abs(targetRgba[i + 1] - workingRgba![i + 1]);
+        const db = Math.abs(targetRgba[i + 2] - workingRgba![i + 2]);
         // Amplify residual slightly (2.2x) so fine perceptual errors remain clearly visible
         out[i] = Math.min(255, Math.round(dr * 2.2));
         out[i + 1] = Math.min(255, Math.round(dg * 2.2));
@@ -68,7 +81,7 @@ export const DualTensorSensoryView: React.FC<DualTensorSensoryViewProps> = ({
     }
 
     ctx.putImageData(imgData, 0, 0);
-  }, [activeSensoryMode, targetRgba, workingRgba, analysisDimensions.w, analysisDimensions.h, stepCount, residualL1Error]);
+  }, [activeSensoryMode, imgHasError, targetRgba, workingRgba, analysisDimensions.w, analysisDimensions.h, stepCount, residualL1Error]);
 
   return (
     <div
@@ -143,15 +156,16 @@ export const DualTensorSensoryView: React.FC<DualTensorSensoryViewProps> = ({
 
       {/* Visual Tensor Viewport */}
       <div className="relative overflow-hidden rounded bg-[#FAF8F5] border border-[#EAE5DC] flex items-center justify-center min-h-[170px] max-h-[190px]">
-        <img
-          src={referenceUrl}
-          alt={`Ground-truth reference for ${studyTitle}`}
-          referrerPolicy="no-referrer"
-          className={`w-full max-h-[190px] object-contain block ${
-            activeSensoryMode === 'target' ? '' : 'hidden'
-          }`}
-        />
-        {activeSensoryMode !== 'target' && (
+        {activeSensoryMode === 'target' && !imgHasError && (
+          <img
+            src={referenceUrl}
+            alt={`Ground-truth reference for ${studyTitle}`}
+            referrerPolicy="no-referrer"
+            onError={() => setImgHasError(true)}
+            className="w-full max-h-[190px] object-contain block"
+          />
+        )}
+        {(activeSensoryMode !== 'target' || imgHasError) && (
           <canvas
             ref={tensorCanvasRef}
             width={analysisDimensions.w}

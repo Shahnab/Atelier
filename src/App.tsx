@@ -50,6 +50,8 @@ interface CursorReticule {
   visible: boolean;
 }
 
+const DEFAULT_STEVE_JOBS_URL = `${(import.meta.env.BASE_URL || '/').replace(/\/$/, '')}/assets/steve-jobs.jpg`;
+
 export default function App() {
   const autoStartRequested =
     typeof window !== 'undefined' &&
@@ -57,7 +59,7 @@ export default function App() {
 
   // Sensory Ground-Truth State (Default: Steve Jobs portrait)
   const [studyTitle, setStudyTitle] = useState<string>('Steve Jobs');
-  const [referenceUrl, setReferenceUrl] = useState<string>('/assets/steve-jobs.jpg');
+  const [referenceUrl, setReferenceUrl] = useState<string>(DEFAULT_STEVE_JOBS_URL);
   const [canvasDimensions, setCanvasDimensions] = useState<{ w: number; h: number }>({
     w: CANVAS_WIDTH,
     h: CANVAS_HEIGHT,
@@ -340,6 +342,7 @@ export default function App() {
         if (titleLabel) {
           setStudyTitle(titleLabel);
         }
+        setReferenceUrl(srcUrl);
 
         initBlankCanvasBuffers(cWidth, cHeight);
 
@@ -368,8 +371,7 @@ export default function App() {
 
   // Initialize with Steve Jobs portrait
   useEffect(() => {
-    const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
-    initializeFromImageSource(`${baseUrl}/assets/steve-jobs.jpg`, 'Steve Jobs', autoStartRequested);
+    initializeFromImageSource(DEFAULT_STEVE_JOBS_URL, 'Steve Jobs', autoStartRequested);
   }, [initializeFromImageSource, autoStartRequested]);
 
   /**
