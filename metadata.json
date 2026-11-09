@@ -1,0 +1,6 @@
+{
+  "name": "Paint — Autonomous Neural Atelier",
+  "description": "Minimalist computer-use painting studio powered by an on-device neural stroke policy network with real-time weight optimization and pressure-sensitive human brushwork.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
